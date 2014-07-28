@@ -1,0 +1,3 @@
+#extract list of data files and file titles
+perl -n <data/Menu.htm bin/extract-file-list.pl >data/file-list.txt
+

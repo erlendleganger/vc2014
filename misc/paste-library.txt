@@ -2,12 +2,12 @@
 wget http://www.emitlive.se/140726/Menu.htm
 
 #extract list of data files and file titles
-perl -n <data/Menu.htm bin/extract-file-list.pl >data/file-list.txt
+perl -n <data/Menu.htm bin/extract-file-list.pl >gen/file-list.txt
 
 #download data files
 bash bin/download-data.sh
 bash bin/download-data.sh|sh
 
 #generate list of classes
-for f in data/*startlist.htm; do sed -e "s/startlist.htm//" -e "s/data\///"<<<$f; done|grep -v Efteranmalda|sort>data/class-list.txt
+for f in data/*startlist.htm; do sed -e "s/startlist.htm//" -e "s/data\///"<<<$f; done|grep -v Efteranmalda|sort>gen/class-list.txt
 

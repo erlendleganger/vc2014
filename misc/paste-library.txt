@@ -8,3 +8,6 @@ perl -n <data/Menu.htm bin/extract-file-list.pl >data/file-list.txt
 bash bin/download-data.sh
 bash bin/download-data.sh|sh
 
+#generate list of classes
+for f in data/*startlist.htm; do sed -e "s/startlist.htm//" -e "s/data\///"<<<$f; done|grep -v Efteranmalda|sort>data/class-list.txt
+

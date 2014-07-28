@@ -1,3 +1,10 @@
+#get the file with source data file names and titles
+wget http://www.emitlive.se/140726/Menu.htm
+
 #extract list of data files and file titles
 perl -n <data/Menu.htm bin/extract-file-list.pl >data/file-list.txt
+
+#download data files
+bash bin/download-data.sh
+bash bin/download-data.sh|sh
 

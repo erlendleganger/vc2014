@@ -64,20 +64,39 @@ sub sec2time{
       $m=($sec-$h*3600)/60;
    }
    $s=$sec-$h*3600-$m*60;
-   sprintf "$sign%02d:%02d:%04.1f",$h,$m,$s;
+   sprintf "$sign%d:%02d:%04.1f",$h,$m,$s;
+}
+
+#------------------------------------------------------------------------
+#------------------------------------------------------------------------
+sub sec2timeMMSS{
+   my $sec=shift;
+   my $sign="";
+   if($sec<0){
+      $sec=-$sec;
+      $sign="-";
+   }
+   my ($h,$m,$s);
+   {
+      use integer;
+      $h=$sec/3600;
+      $m=($sec-$h*3600)/60;
+      $s=$sec-$h*3600-$m*60;
+   }
+   sprintf "$sign%d:%02d",$m,$s;
 }
 
 #------------------------------------------------------------------------
 #main code here
 my $testmode;
-$testmode="1";
+#$testmode="1";
 if($testmode){
    my ($t0,$t1,$t2);
 
    #---------------------------------------------------------------------
    $t0='1:2';
    $t1=sec2time(time2sec($t0));
-   if($t1 eq "00:01:02.0"){
+   if($t1 eq "0:01:02.0"){
       print "$t0 converted to $t1 - ok\n";
    }
    else{
@@ -87,7 +106,17 @@ if($testmode){
    #---------------------------------------------------------------------
    $t0='1:2:3';
    $t1=sec2time(time2sec($t0));
-   if($t1 eq "01:02:03.0"){
+   if($t1 eq "1:02:03.0"){
+      print "$t0 converted to $t1 - ok\n";
+   }
+   else{
+      die "$t0 converted to $t1 - error\n";
+   }
+
+   #---------------------------------------------------------------------
+   $t0='1:2:3';
+   $t1=sec2timeMMSS(time2sec($t0));
+   if($t1 eq "2:03"){
       print "$t0 converted to $t1 - ok\n";
    }
    else{
@@ -107,7 +136,17 @@ if($testmode){
    #---------------------------------------------------------------------
    $t0='-1:2:3';
    $t1=sec2time(time2sec($t0));
-   if($t1 eq "-01:02:03.0"){
+   if($t1 eq "-1:02:03.0"){
+      print "$t0 converted to $t1 - ok\n";
+   }
+   else{
+      die "$t0 converted to $t1 - error\n";
+   }
+
+   #---------------------------------------------------------------------
+   $t0='-2:3';
+   $t1=sec2time(time2sec($t0));
+   if($t1 eq "-0:02:03.0"){
       print "$t0 converted to $t1 - ok\n";
    }
    else{
@@ -118,7 +157,7 @@ if($testmode){
    $t0='2:3:4';
    $t1='1:2:3';
    $t2=timesum($t0,$t1);
-   if($t2 eq "03:05:07.0"){
+   if($t2 eq "3:05:07.0"){
       print "$t0 plus $t1 = $t2 - ok\n";
    }
    else{
@@ -129,7 +168,7 @@ if($testmode){
    for $t1('0:1','0:0:1','0:0:1.0'){
       $t0='1:59:59';
       $t2=timesum($t0,$t1);
-      if($t2 eq "02:00:00.0"){
+      if($t2 eq "2:00:00.0"){
          print "$t0 plus $t1 = $t2 - ok\n";
       }
       else{
@@ -141,7 +180,7 @@ if($testmode){
    $t0='2:3:4';
    $t1='1:2:3';
    $t2=timediff($t0,$t1);
-   if($t2 eq "01:01:01.0"){
+   if($t2 eq "1:01:01.0"){
       print "$t0 minus $t1 = $t2 - ok\n";
    }
    else{
@@ -152,7 +191,7 @@ if($testmode){
    $t0='1:2:3';
    $t1='2:3:4';
    $t2=timediff($t0,$t1);
-   if($t2 eq "-01:01:01.0"){
+   if($t2 eq "-1:01:01.0"){
       print "$t0 minus $t1 = $t2 - ok\n";
    }
    else{
@@ -163,7 +202,29 @@ if($testmode){
    $t0='1:2:3';
    $t1='1:2:3';
    $t2=timediff($t0,$t1);
-   if($t2 eq "00:00:00.0"){
+   if($t2 eq "0:00:00.0"){
+      print "$t0 minus $t1 = $t2 - ok\n";
+   }
+   else{
+      die "$t0 minus $t1 = $t2 - error\n";
+   }
+
+   #---------------------------------------------------------------------
+   $t0='0:0.1';
+   $t1='0:0.2';
+   $t2=timediff($t0,$t1);
+   if($t2 eq "-0:00:00.1"){
+      print "$t0 minus $t1 = $t2 - ok\n";
+   }
+   else{
+      die "$t0 minus $t1 = $t2 - error\n";
+   }
+
+   #---------------------------------------------------------------------
+   $t0='0:0.2';
+   $t1='0:0.1';
+   $t2=timediff($t0,$t1);
+   if($t2 eq "0:00:00.1"){
       print "$t0 minus $t1 = $t2 - ok\n";
    }
    else{
@@ -231,14 +292,14 @@ close CLASS;
 for my $nr(keys %db){
    if(defined $db{$nr}{TimeSwim}){
       $db{$nr}{TimeUsedSwim}=sec2time(time2sec($db{$nr}{TimeSwim}));
-      $db{$nr}{TimeUsedT1}=sec2time(time2sec($db{$nr}{TimeT1})-time2sec($db{$nr}{TimeSwim}));
-      $db{$nr}{TimeUsedCycling}=sec2time(time2sec($db{$nr}{TimeCycling})-time2sec($db{$nr}{TimeT1}));
-      $db{$nr}{TimeUsedCycling1half}=sec2time(time2sec($db{$nr}{TimeCyclingLap2})-time2sec($db{$nr}{TimeT1}));
-      $db{$nr}{TimeUsedCycling2half}=sec2time(time2sec($db{$nr}{TimeCycling})-time2sec($db{$nr}{TimeCyclingLap2}));
-      $db{$nr}{TimeUsedT2}=sec2time(time2sec($db{$nr}{TimeT2})-time2sec($db{$nr}{TimeCycling}));
-      $db{$nr}{TimeUsedRun1half}=sec2time(time2sec($db{$nr}{TimeRunLap2})-time2sec($db{$nr}{TimeT2}));
-      $db{$nr}{TimeUsedRun2half}=sec2time(time2sec($db{$nr}{TimeRun})-time2sec($db{$nr}{TimeRunLap2}));
-      $db{$nr}{TimeUsedRun}=sec2time(time2sec($db{$nr}{TimeRun})-time2sec($db{$nr}{TimeT2}));
+      $db{$nr}{TimeUsedT1}=timediff($db{$nr}{TimeT1},$db{$nr}{TimeSwim});
+      $db{$nr}{TimeUsedCycling}=timediff($db{$nr}{TimeCycling},$db{$nr}{TimeT1});
+      $db{$nr}{TimeUsedCycling1half}=timediff($db{$nr}{TimeCyclingLap2},$db{$nr}{TimeT1});
+      $db{$nr}{TimeUsedCycling2half}=timediff($db{$nr}{TimeCycling},$db{$nr}{TimeCyclingLap2});
+      $db{$nr}{TimeUsedT2}=timediff($db{$nr}{TimeT2},$db{$nr}{TimeCycling});
+      $db{$nr}{TimeUsedRun1half}=timediff($db{$nr}{TimeRunLap2},$db{$nr}{TimeT2});
+      $db{$nr}{TimeUsedRun2half}=timediff($db{$nr}{TimeRun},$db{$nr}{TimeRunLap2});
+      $db{$nr}{TimeUsedRun}=timediff($db{$nr}{TimeRun},$db{$nr}{TimeT2});
    }
 }
 
@@ -284,12 +345,18 @@ for my $nr(sort{ $a <=> $b } keys %db){
 <tr><td>Name:</td><td>$db{$nr}{Name}</td></tr>
 <tr><td>Club:</td><td>$db{$nr}{Club}</td></tr>
 <tr><td>Class:</td><td>$db{$nr}{Class}</td></tr>
-<tr><td>Swim:</td><td>$db{$nr}{TimeUsedSwim}</td></tr>
-<tr><td>T1:</td><td>$db{$nr}{TimeUsedT1}</td></tr>
-<tr><td>Cycling:</td><td>$db{$nr}{TimeUsedCycling}</td></tr>
-<tr><td>T2:</td><td>$db{$nr}{TimeUsedT2}</td></tr>
-<tr><td>Run:</td><td>$db{$nr}{TimeUsedRun}</td></tr>
-<tr><td>Total time:</td><td>$db{$nr}{TimeRun}</td></tr>
+</table>
+<table>
+<tr><td>Text</td><td>Time</td><td>Overall</td><td>Sex</td><td>Class</td></tr>
+<tr><td>Swim:</td><td>$db{$nr}{TimeUsedSwim}</td><td>x</td><td></td><td></td></tr>
+<tr><td>T1:</td><td>$db{$nr}{TimeUsedT1}</td><td>x</td><td></td><td></td></tr>
+<tr><td>Total after T1:</td><td>$db{$nr}{TimeT1}</td><td>x</td><td></td><td></td></tr>
+<tr><td>Cycling:</td><td>$db{$nr}{TimeUsedCycling}</td><td>x</td><td></td><td></td></tr>
+<tr><td>Total after Cycling:</td><td>$db{$nr}{TimeCycling}</td><td>x</td><td></td><td></td></tr>
+<tr><td>T2:</td><td>$db{$nr}{TimeUsedT2}</td><td>x</td><td></td><td></td></tr>
+<tr><td>Total after T2:</td><td>$db{$nr}{TimeT2}</td><td>x</td><td></td><td></td></tr>
+<tr><td>Run:</td><td>$db{$nr}{TimeUsedRun}</td><td>x</td><td></td><td></td></tr>
+<tr><td>Total after Run:</td><td>$db{$nr}{TimeRun}</td><td>x</td><td></td><td></td></tr>
 </table>
 EOT
 ;

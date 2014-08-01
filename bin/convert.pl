@@ -16,6 +16,7 @@ my %timemap=(
    'TimeRunLap3'=>'itime19',
    'TimeRun'=>'finish',
 );
+my $ztime="0:00:00.0";
 
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------
@@ -260,6 +261,8 @@ while(<CLASS>){
          $db{$nr}{Name}=$name;
          $db{$nr}{Club}=$club;
          $db{$nr}{Class}=$class;
+         $db{$nr}{Sex}='Female';
+         $db{$nr}{Sex}='Male' if($class=~m/Herrar/);
       }
 
    }
@@ -288,21 +291,52 @@ while(<CLASS>){
 close CLASS;
 
 #------------------------------------------------------------------------
-#calculate some time used 
+#calculate some times used 
 for my $nr(keys %db){
-   if(defined $db{$nr}{TimeSwim}){
-      $db{$nr}{TimeUsedSwim}=sec2time(time2sec($db{$nr}{TimeSwim}));
-      $db{$nr}{TimeUsedT1}=timediff($db{$nr}{TimeT1},$db{$nr}{TimeSwim});
-      $db{$nr}{TimeUsedCycling}=timediff($db{$nr}{TimeCycling},$db{$nr}{TimeT1});
-      $db{$nr}{TimeUsedCycling1half}=timediff($db{$nr}{TimeCyclingLap2},$db{$nr}{TimeT1});
-      $db{$nr}{TimeUsedCycling2half}=timediff($db{$nr}{TimeCycling},$db{$nr}{TimeCyclingLap2});
-      $db{$nr}{TimeUsedT2}=timediff($db{$nr}{TimeT2},$db{$nr}{TimeCycling});
-      $db{$nr}{TimeUsedRun1half}=timediff($db{$nr}{TimeRunLap2},$db{$nr}{TimeT2});
-      $db{$nr}{TimeUsedRun2half}=timediff($db{$nr}{TimeRun},$db{$nr}{TimeRunLap2});
-      $db{$nr}{TimeUsedRun}=timediff($db{$nr}{TimeRun},$db{$nr}{TimeT2});
+   $db{$nr}{TimeUsedSwim}=sec2time(time2sec($db{$nr}{TimeSwim}));
+   $db{$nr}{TimeUsedT1}=timediff($db{$nr}{TimeT1},$db{$nr}{TimeSwim});
+   $db{$nr}{TimeUsedCycling}=timediff($db{$nr}{TimeCycling},$db{$nr}{TimeT1});
+   $db{$nr}{TimeUsedCycling1half}=timediff($db{$nr}{TimeCyclingLap2},$db{$nr}{TimeT1});
+   $db{$nr}{TimeUsedCycling2half}=timediff($db{$nr}{TimeCycling},$db{$nr}{TimeCyclingLap2});
+   $db{$nr}{TimeUsedT2}=timediff($db{$nr}{TimeT2},$db{$nr}{TimeCycling});
+   $db{$nr}{TimeUsedRun1half}=timediff($db{$nr}{TimeRunLap2},$db{$nr}{TimeT2});
+   $db{$nr}{TimeUsedRun2half}=timediff($db{$nr}{TimeRun},$db{$nr}{TimeRunLap2});
+   $db{$nr}{TimeUsedRun}=timediff($db{$nr}{TimeRun},$db{$nr}{TimeT2});
+   for my $name(qw(TimeUsedSwim TimeUsedT1 TimeUsedCycling TimeUsedCycling1half TimeUsedCycling2half TimeUsedT2 TimeUsedRun1half TimeUsedRun2half TimeUsedRun)){
+      my $time=$db{$nr}{$name};
+      undef $db{$nr}{$name} if($time=~m/^\-/ or $time eq $ztime);
    }
 }
 
+#------------------------------------------------------------------------
+my %nrlist=();
+my $nrcount=0;
+my $rank=0;
+
+#------------------------------------------------------------------------
+#calculate rankings
+for my $name(qw(UsedSwim UsedT1 T1 UsedCycling Cycling UsedT2 T2 UsedRun Run)){
+   %nrlist=();
+   for my $nr(keys %db){
+      if(defined $db{$nr}{"Time$name"} and $db{$nr}{"Time$name"} ne $ztime){
+         push @{$nrlist{overall}},$nr;
+         push @{$nrlist{$db{$nr}{Sex}}},$nr;
+         push @{$nrlist{$db{$nr}{Class}}},$nr;
+      }
+   }
+   for my $key(keys %nrlist){
+      #$metadb{$key}{$name}{count}=1+$#{$nrlist{$key}};
+      my $count=1+$#{$nrlist{$key}};
+      $rank=0;
+      for my $nr(sort{$db{$a}{"Time$name"}cmp$db{$b}{"Time$name"}} @{$nrlist{$key}}){
+         $rank++;
+         my $pctbeaten=sprintf "%3.0f",100.0*$rank/$count;
+         $db{$nr}{"Rank$name"}{$key}="$rank/$count ($pctbeaten%)";
+      }
+   }
+}
+
+#------------------------------------------------------------------------
 print Dumper(%db);
 
 #------------------------------------------------------------------------
@@ -320,6 +354,14 @@ body
    font-family: 'Trebuchet MS', Helvetica, sans-serif;
    #font-size: 90%;
 }
+table {
+border-collapse: collapse;
+}
+
+td, th {
+border: 1px solid black;
+padding: 3px;
+}
 </style>
 </head>
 <body>
@@ -336,27 +378,30 @@ EOT
 ;
 
 #------------------------------------------------------------------------
-print qq(<a name="#detail"></a>\n<h2>Details for each competitor</h2>\n);
+print OUT qq(<a name="#detail"></a>\n<h2>Details for each competitor</h2>\n);
 for my $nr(sort{ $a <=> $b } keys %db){
+   no warnings;
    print OUT<<EOT
 <hr>
 <table>
 <tr><td>Bib number:</td><td>$nr</td></tr>
 <tr><td>Name:</td><td>$db{$nr}{Name}</td></tr>
 <tr><td>Club:</td><td>$db{$nr}{Club}</td></tr>
+<tr><td>Sex:</td><td>$db{$nr}{Sex}</td></tr>
 <tr><td>Class:</td><td>$db{$nr}{Class}</td></tr>
 </table>
+&nbsp;
 <table>
-<tr><td>Text</td><td>Time</td><td>Overall</td><td>Sex</td><td>Class</td></tr>
-<tr><td>Swim:</td><td>$db{$nr}{TimeUsedSwim}</td><td>x</td><td></td><td></td></tr>
-<tr><td>T1:</td><td>$db{$nr}{TimeUsedT1}</td><td>x</td><td></td><td></td></tr>
-<tr><td>Total after T1:</td><td>$db{$nr}{TimeT1}</td><td>x</td><td></td><td></td></tr>
-<tr><td>Cycling:</td><td>$db{$nr}{TimeUsedCycling}</td><td>x</td><td></td><td></td></tr>
-<tr><td>Total after Cycling:</td><td>$db{$nr}{TimeCycling}</td><td>x</td><td></td><td></td></tr>
-<tr><td>T2:</td><td>$db{$nr}{TimeUsedT2}</td><td>x</td><td></td><td></td></tr>
-<tr><td>Total after T2:</td><td>$db{$nr}{TimeT2}</td><td>x</td><td></td><td></td></tr>
-<tr><td>Run:</td><td>$db{$nr}{TimeUsedRun}</td><td>x</td><td></td><td></td></tr>
-<tr><td>Total after Run:</td><td>$db{$nr}{TimeRun}</td><td>x</td><td></td><td></td></tr>
+<tr><td>Text</td><td>Time</td><td>Overall</td><td>$db{$nr}{Sex}s</td><td>Class</td></tr>
+<tr><td>Swim:</td><td>$db{$nr}{TimeUsedSwim}</td><td>$db{$nr}{RankUsedSwim}{overall}</td><td>$db{$nr}{RankUsedSwim}{$db{$nr}{Sex}}</td><td>$db{$nr}{RankUsedSwim}{$db{$nr}{Class}}</td></tr>
+<tr><td>T1:</td><td>$db{$nr}{TimeUsedT1}</td><td>$db{$nr}{RankUsedT1}{overall}</td><td>$db{$nr}{RankUsedT1}{$db{$nr}{Sex}}</td><td>$db{$nr}{RankUsedT1}{$db{$nr}{Class}}</td></tr>
+<tr><td>Total after T1:</td><td>$db{$nr}{TimeT1}</td><td>$db{$nr}{RankT1}{overall}</td><td>$db{$nr}{RankT1}{$db{$nr}{Sex}}</td><td>$db{$nr}{RankT1}{$db{$nr}{Class}}</td></tr>
+<tr><td>Cycling:</td><td>$db{$nr}{TimeUsedCycling}</td><td>$db{$nr}{RankUsedCycling}{overall}</td><td>$db{$nr}{RankUsedCycling}{$db{$nr}{Sex}}</td><td>$db{$nr}{RankUsedCycling}{$db{$nr}{Class}}</td></tr>
+<tr><td>Total after Cycling:</td><td>$db{$nr}{TimeCycling}</td><td>$db{$nr}{RankCycling}{overall}</td><td>$db{$nr}{RankCycling}{$db{$nr}{Sex}}</td><td>$db{$nr}{RankCycling}{$db{$nr}{Class}}</td></tr>
+<tr><td>T2:</td><td>$db{$nr}{TimeUsedT2}</td><td>$db{$nr}{RankUsedT2}{overall}</td><td>$db{$nr}{RankUsedT2}{$db{$nr}{Sex}}</td><td>$db{$nr}{RankUsedT2}{$db{$nr}{Class}}</td></tr>
+<tr><td>Total after T2:</td><td>$db{$nr}{TimeT2}</td><td>$db{$nr}{RankT2}{overall}</td><td>$db{$nr}{RankT2}{$db{$nr}{Sex}}</td><td>$db{$nr}{RankT2}{$db{$nr}{Class}}</td></tr>
+<tr><td>Run:</td><td>$db{$nr}{TimeUsedRun}</td><td>$db{$nr}{RankUsedRun}{overall}</td><td>$db{$nr}{RankUsedRun}{$db{$nr}{Sex}}</td><td>$db{$nr}{RankUsedRun}{$db{$nr}{Class}}</td></tr>
+<tr><td>Total after Run:</td><td>$db{$nr}{TimeRun}</td><td>$db{$nr}{RankRun}{overall}</td><td>$db{$nr}{RankRun}{$db{$nr}{Sex}}</td><td>$db{$nr}{RankRun}{$db{$nr}{Class}}</td></tr>
 </table>
 EOT
 ;
